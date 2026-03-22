@@ -103,49 +103,43 @@ function compareValues(
   }
 }
 
-function evaluateCriterion(
+type MatchStatus = true | false | undefined
+
+function evaluateCriterionStatus(
   criterionId: number,
   values: MatchFormValues,
   criteriaMap: CriteriaMap
-): boolean {
+): MatchStatus {
   const criterion = criteriaMap.get(criterionId)
-  if (!criterion) return false // unknown criterion → undetermined, treat as false
+  if (!criterion) return false // unknown criterion -> false
   const fieldValue = values[criterion.fieldId]
+  if (fieldValue === undefined || fieldValue === null || fieldValue === '')
+    return undefined
   return compareValues(fieldValue, criterion.fieldValue, criterion.operator)
 }
 
-function evaluateAlgorithm(
+function evaluateAlgorithmStatus(
   algorithm: MatchAlgorithm,
   values: MatchFormValues,
   criteriaMap: CriteriaMap
-): boolean {
+): MatchStatus {
   const results = algorithm.criteria.map((item) => {
     if (typeof item === 'number') {
-      return evaluateCriterion(item, values, criteriaMap)
+      return evaluateCriterionStatus(item, values, criteriaMap)
     }
-    return evaluateAlgorithm(item as MatchAlgorithm, values, criteriaMap)
+    return evaluateAlgorithmStatus(item as MatchAlgorithm, values, criteriaMap)
   })
 
-  if (algorithm.operator === 'AND') return results.every(Boolean)
-  return results.some(Boolean)
-}
-
-function hasUnansweredCriteria(
-  algorithm: MatchAlgorithm,
-  values: MatchFormValues,
-  criteriaMap: CriteriaMap
-): boolean {
-  return algorithm.criteria.some((item) => {
-    if (typeof item === 'number') {
-      const criterion = criteriaMap.get(item)
-      if (!criterion) return true
-      const fieldValue = values[criterion.fieldId]
-      return (
-        fieldValue === undefined || fieldValue === null || fieldValue === ''
-      )
-    }
-    return hasUnansweredCriteria(item as MatchAlgorithm, values, criteriaMap)
-  })
+  if (algorithm.operator === 'AND') {
+    if (results.some((r) => r === false)) return false
+    if (results.some((r) => r === undefined)) return undefined
+    return true
+  } else {
+    // OR
+    if (results.some((r) => r === true)) return true
+    if (results.some((r) => r === undefined)) return undefined
+    return false
+  }
 }
 
 function buildMatchInfoAlgorithm(
@@ -153,21 +147,59 @@ function buildMatchInfoAlgorithm(
   values: MatchFormValues,
   criteriaMap: CriteriaMap
 ): MatchInfoAlgorithm {
+  // Build a lookup from fieldId → label & options for human-readable names
+  const fieldLookup = new Map(
+    (matchFormConfig as MatchFormConfig).fields.map((f) => [
+      f.id,
+      {
+        label: f.label || f.name,
+        options: f.options || [],
+      },
+    ])
+  )
+
+  function resolveValueLabel(
+    fieldId: number,
+    rawValue: unknown
+  ): string | string[] | undefined {
+    const info = fieldLookup.get(fieldId)
+    if (!info || !info.options.length) return undefined
+    if (Array.isArray(rawValue)) {
+      return rawValue.map((v) => {
+        const opt = info.options.find(
+          (o) => o.value === v || String(o.value) === String(v)
+        )
+        return opt ? opt.label : String(v)
+      })
+    }
+    const opt = info.options.find(
+      (o) => o.value === rawValue || String(o.value) === String(rawValue)
+    )
+    return opt ? opt.label : undefined
+  }
+
   const criteria = algorithm.criteria.map((item) => {
     if (typeof item === 'number') {
       const criterion = criteriaMap.get(item)
       if (!criterion) {
         return {
-          fieldName: `criterion_${item}`,
+          fieldName: `Unknown criterion (${item})`,
           fieldValue: undefined,
           operator: 'eq' as const,
           isMatched: false,
         }
       }
       const fieldValue = values[criterion.fieldId]
+      const info = fieldLookup.get(criterion.fieldId)
+      const fieldName = info ? info.label : `Field ${criterion.fieldId}`
+      const fieldValueLabel = resolveValueLabel(
+        criterion.fieldId,
+        criterion.fieldValue
+      )
       return {
-        fieldName: `field_${criterion.fieldId}`,
+        fieldName,
         fieldValue: criterion.fieldValue,
+        fieldValueLabel,
         operator: criterion.operator,
         isMatched: compareValues(
           fieldValue,
@@ -203,24 +235,18 @@ export const mockGetMatchGroups = (
 
   for (const condition of matchConditions as MatchCondition[]) {
     const studyId = condition.studyId
-    const hasUnanswered = hasUnansweredCriteria(
+    const status = evaluateAlgorithmStatus(
       condition.algorithm,
       values,
       criteriaMap
     )
-    if (hasUnanswered) {
-      undetermined.push(studyId)
+
+    if (status === true) {
+      matched.push(studyId)
+    } else if (status === false) {
+      unmatched.push(studyId)
     } else {
-      const isMatch = evaluateAlgorithm(
-        condition.algorithm,
-        values,
-        criteriaMap
-      )
-      if (isMatch) {
-        matched.push(studyId)
-      } else {
-        unmatched.push(studyId)
-      }
+      undetermined.push(studyId)
     }
   }
 

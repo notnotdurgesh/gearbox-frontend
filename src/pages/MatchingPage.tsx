@@ -8,7 +8,7 @@ import {
 } from 'react-feather'
 import ReactTooltip from 'react-tooltip'
 import Button from '../components/Inputs/Button'
-import MatchForm from '../components/MatchForm'
+import MatchForm from '../components/SmartSearch/SmartMatchForm'
 import MatchResult from '../components/MatchResult'
 import type useGearboxData from '../hooks/useGearboxData'
 import useScreenSize from '../hooks/useScreenSize'
@@ -216,7 +216,7 @@ function MatchingPage({
                 </ReactTooltip>
               </button>
               {showFormOptions && (
-                <div className="absolute right-0 origin-top-right w-44 bg-white border border-gray-300 shadow-md mt-1 p-1">
+                <div className="absolute right-0 origin-top-right w-44 bg-white border border-gray-300 shadow-md mt-1 p-1 z-50">
                   <ul className="w-full text-sm text-center text-primary">
                     <li className="hover:bg-red-100">
                       <button
@@ -289,7 +289,7 @@ function MatchingPage({
     </>
   ) : (
     <div className="flex h-screen pb-8">
-      <section className="h-full overflow-scroll w-1/2">
+      <section className="h-full overflow-y-auto w-1/2">
         <h1 className="sticky top-0 bg-white uppercase text-primary font-bold px-4 lg:px-8 py-2 z-10 flex items-end justify-between">
           <span>Patient Information</span>
           <div
@@ -318,7 +318,7 @@ function MatchingPage({
               </ReactTooltip>
             </button>
             {showFormOptions && (
-              <div className="absolute right-0 origin-top-right w-44 bg-white border border-gray-300 shadow-md mt-2 p-1">
+              <div className="absolute right-0 origin-top-right w-44 bg-white border border-gray-300 shadow-md mt-2 p-1 z-50">
                 <ul className="w-full text-sm text-center">
                   <li className="hover:bg-red-100">
                     <button
@@ -403,7 +403,7 @@ function MatchingPage({
           />
         </div>
       </section>
-      <section className="h-full overflow-scroll w-1/2">
+      <section className="h-full overflow-y-auto w-1/2">
         <h1 className="sticky top-0 bg-white uppercase text-primary font-bold pl-4 lg:pl-8 py-2 z-10">
           Open Trials
         </h1>
