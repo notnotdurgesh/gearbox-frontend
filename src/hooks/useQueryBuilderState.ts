@@ -44,61 +44,64 @@ export function useQueryBuilderState(
   const [loadingStatus, setLoadingStatus] = useState<ApiStatus>('not started')
 
   const [studyVersion, setStudyVersion] = useState<StudyVersion | null>(null)
-  const fetchQueryBuilderState = (svId: number, mf: MatchFormConfig) => {
-    setLoadingStatus('sending')
-    getStudyVersionById(svId)
-      .then((sv) => {
-        setStudyVersion(sv)
-        const {
-          eligibility_criteria_id: ecId,
-          study_algorithm_engine_id: saId,
-        } = sv
-        getEligibilityCriteriaById(ecId).then((eligibilityCriteria) => {
-          const queryBuilderConfig = getQueryBuilderConfig(
-            matchForm.fields,
-            eligibilityCriteria,
-            criteriaNotInMatchForm
-          )
-          if (saId) {
-            getStudyAlgorithm(saId).then((algorithm) => {
-              const queryValue = getQueryBuilderValue(
-                algorithm,
-                eligibilityCriteria,
-                mf,
-                criteriaNotInMatchForm
-              )
+  const fetchQueryBuilderState = useCallback(
+    (svId: number, mf: MatchFormConfig) => {
+      setLoadingStatus('sending')
+      getStudyVersionById(svId)
+        .then((sv) => {
+          setStudyVersion(sv)
+          const {
+            eligibility_criteria_id: ecId,
+            study_algorithm_engine_id: saId,
+          } = sv
+          getEligibilityCriteriaById(ecId).then((eligibilityCriteria) => {
+            const queryBuilderConfig = getQueryBuilderConfig(
+              matchForm.fields,
+              eligibilityCriteria,
+              criteriaNotInMatchForm
+            )
+            if (saId) {
+              getStudyAlgorithm(saId).then((algorithm) => {
+                const queryValue = getQueryBuilderValue(
+                  algorithm,
+                  eligibilityCriteria,
+                  mf,
+                  criteriaNotInMatchForm
+                )
+                setQueryBuilderState((prevState) => ({
+                  ...prevState,
+                  tree: QbUtils.checkTree(
+                    QbUtils.loadTree(queryValue),
+                    queryBuilderConfig
+                  ),
+                  config: queryBuilderConfig,
+                }))
+                setLoadingStatus('success')
+              })
+            } else {
               setQueryBuilderState((prevState) => ({
                 ...prevState,
                 tree: QbUtils.checkTree(
-                  QbUtils.loadTree(queryValue),
+                  QbUtils.loadTree(getInitQueryValue()),
                   queryBuilderConfig
                 ),
                 config: queryBuilderConfig,
               }))
               setLoadingStatus('success')
-            })
-          } else {
-            setQueryBuilderState((prevState) => ({
-              ...prevState,
-              tree: QbUtils.checkTree(
-                QbUtils.loadTree(getInitQueryValue()),
-                queryBuilderConfig
-              ),
-              config: queryBuilderConfig,
-            }))
-            setLoadingStatus('success')
-          }
+            }
+          })
         })
-      })
-      .catch((err) => {
-        console.error(err)
-        setLoadingStatus('error')
-      })
-  }
+        .catch((err) => {
+          console.error(err)
+          setLoadingStatus('error')
+        })
+    },
+    [matchForm.fields, criteriaNotInMatchForm]
+  )
 
   useEffect(() => {
     fetchQueryBuilderState(studyVersionId, matchForm)
-  }, [studyVersionId, matchForm])
+  }, [studyVersionId, matchForm, fetchQueryBuilderState])
 
   const onChange = useCallback(
     (immutableTree: ImmutableTree, config: Config) => {

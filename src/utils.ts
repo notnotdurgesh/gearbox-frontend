@@ -44,7 +44,9 @@ export const getFieldOptionLabelMap = (fields: MatchFormFieldConfig[]) => {
 
 const testCriterion = (
   critOperator: ComparisonOperator,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   critValue: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   testValue: any
 ) => {
   switch (critOperator) {
@@ -141,6 +143,7 @@ export const getDefaultValues = ({ fields }: MatchFormConfig) => {
 export const getIsFieldShowing = (
   { criteria, operator }: MatchFormFieldShowIfCondition,
   config: MatchFormConfig,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   values: { [x: string]: any }
 ) => {
   let isShowing = true

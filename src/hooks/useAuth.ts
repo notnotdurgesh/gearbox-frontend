@@ -7,6 +7,7 @@ import {
   registerUser,
   updateDocsReviewStatus,
 } from '../api/auth'
+import { IS_MOCK_MODE, MOCK_USER } from '../mock/mockAuth'
 
 export default function useAuth(): {
   isAuthenticated: boolean
@@ -19,7 +20,30 @@ export default function useAuth(): {
   signout: () => void
   fetchAuth: () => void
 } {
+  // ── Mock mode: skip all API calls and return a pre-baked authenticated user ──
+  if (IS_MOCK_MODE) {
+    return {
+      isAuthenticated: true,
+      isRegistered: true,
+      hasDocsToBeReviewed: false,
+      user: MOCK_USER,
+      loadingStatus: 'success',
+      register: () => Promise.resolve(),
+      reviewDocuments: () => Promise.resolve(),
+      signout: () => {
+        console.info('[Mock] signout called — no-op in mock mode')
+      },
+      fetchAuth: () => {
+        console.info('[Mock] fetchAuth called — no-op in mock mode')
+      },
+    }
+  }
+
+  // ── Real mode ────────────────────────────────────────────────────────────────
+  // (the rest of the hook is only reached when IS_MOCK_MODE is false)
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const [userData, setUserData] = useState<UserData>()
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const [loadingStatus, setLoadingStatus] = useState<ApiStatus>('not started')
 
   const fetchAuth = () => {
@@ -35,6 +59,7 @@ export default function useAuth(): {
       })
   }
 
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const auth = useMemo(() => {
     const isAuthenticated = userData !== undefined
     const isRegistered =
@@ -66,6 +91,7 @@ export default function useAuth(): {
     }
   }, [userData, loadingStatus])
 
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     if (!auth.isAuthenticated) {
       fetchAuth()
@@ -74,7 +100,9 @@ export default function useAuth(): {
   }, [])
 
   // keep access token alive
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const timer = useRef<number | undefined>(undefined)
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     if (timer.current === undefined && auth.isAuthenticated)
       timer.current = window.setInterval(

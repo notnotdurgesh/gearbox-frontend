@@ -1,13 +1,27 @@
-import type { MatchFormValues, UserInputApi, UserInputUi } from '../model'
+import type { MatchFormValues, UserInputUi } from '../model'
 import { fetchGearbox } from './utils'
+import { IS_MOCK_MODE } from '../mock/mockAuth'
+import { mockGetLatestUserInput, mockPostUserInput } from '../mock/utils'
 
 type LatestUserInputBody =
-  | UserInputApi // exists
+  | {
+      results: { id: string; value: string }[]
+      id?: number
+      name?: string | null
+    } // exists
   | { detail: string } // does not exist
 
-type AllUserInputsBody = UserInputApi[] | { detail: string }
+type AllUserInputsBody =
+  | {
+      results: { id: string; value: string }[]
+      id?: number
+      name?: string | null
+    }[]
+  | { detail: string }
 
 export function getLatestUserInput(): Promise<UserInputUi> {
+  if (IS_MOCK_MODE) return mockGetLatestUserInput()
+
   return fetchGearbox('/gearbox-middleware/user-input/latest')
     .then((res) => res.json())
     .then((data: LatestUserInputBody) => {
@@ -25,12 +39,14 @@ export function postUserInput(
   id?: number,
   name?: string
 ): Promise<UserInputUi> {
+  if (IS_MOCK_MODE) return mockPostUserInput(values, id, name)
+
   const data = Object.keys(values).reduce((acc, id) => {
     const value = values[Number(id)]
     return value === undefined || (Array.isArray(value) && value.length === 0)
       ? acc
       : [...acc, { id: Number(id), value }]
-  }, [] as { id: number; value: any }[])
+  }, [] as { id: number; value: unknown }[])
 
   return fetchGearbox('/gearbox-middleware/user-input', {
     method: 'POST',
@@ -40,7 +56,14 @@ export function postUserInput(
       name,
     }),
   })
-    .then((res) => res.json() as Promise<UserInputApi>)
+    .then(
+      (res) =>
+        res.json() as Promise<{
+          results: { id: string; value: string }[]
+          id?: number
+          name?: string | null
+        }>
+    )
     .then(userInputApiToUi)
     .catch((err) => {
       throw new Error('Failed to post the latest saved user input:', err)
@@ -48,6 +71,10 @@ export function postUserInput(
 }
 
 export function getAllUserInput(): Promise<UserInputUi[]> {
+  if (IS_MOCK_MODE) {
+    return mockGetLatestUserInput().then((u) => [u])
+  }
+
   return fetchGearbox('/gearbox-middleware/user-input/all')
     .then((res) => res.json())
     .then((data: AllUserInputsBody) => {
@@ -62,7 +89,11 @@ export function getAllUserInput(): Promise<UserInputUi[]> {
     })
 }
 
-function userInputApiToUi(userInputApi: UserInputApi): UserInputUi {
+function userInputApiToUi(userInputApi: {
+  results: { id: string; value: string }[]
+  id?: number
+  name?: string | null
+}): UserInputUi {
   return {
     values: userInputApi.results.reduce(
       (acc, { id, value }) => ({ ...acc, [id]: value }),
