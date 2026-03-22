@@ -1,5 +1,18 @@
 # GEARBOx front end application prototype
 
+🌟 **GSoC 2026: Project 6 - Enhance GEARBOx Trial Matching Page** 🌟  
+🚀 **Live Prototype Demo:** [https://gearboxrefactor.netlify.app/](https://gearboxrefactor.netlify.app/)
+
+### Project 6 Enhancements Implemented
+This repository contains a complete Proof of Concept (POC) addressing the UI/UX overhaul of the trial matching experience. Key features include:
+- **Smart Trial Matcher**: Replaced the overwhelming, infinite-scrolling static form with a dynamic, intent-driven interface.
+- **Fuzzy Typeahead Search**: Allows users to actively search for specific medical criteria using Levenshtein distance substring matching and visual text highlighting.
+- **Dynamic Chronological Hoisting**: Selected criteria and categories automatically jump to the absolute top of the form, ensuring users never have to scroll down after adding a question.
+- **Quick-Start Templates**: Introduced one-click grouped presets (e.g., Demographics, Organ Function) for rapid patient trial filtering.
+- **End-to-End State Integration**: Perfectly preserves legacy `showIf` nested condition cascades, relevance locking (`disabled: !relevant`), and debounced mock-engine evaluations.
+
+---
+
 A simple prototype for the GEARBOx's client-side application, powered by [React](https://reactjs.org/) and [Tailwind CSS](https://tailwindcss.com/).
 
 The primary goal of this prototype is to facilitate the GEARBOx development team's efforts to iterate on different ideas for designing and implementing user interface to the GEARBOx service. The GEARBOx project is still at its early stage, and the scope of this prototype UI application is currently limited to modeling the client-side interactions without sending requests to GEARBOx back end services.
